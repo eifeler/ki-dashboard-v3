@@ -21,6 +21,7 @@
   --text-secondary:#94a3b8;
   --text-muted:    #4a5568;
   --sidebar-width: 240px;
+  --sidebar-collapsed-width: 56px;
   --header-h:      60px;
   --radius:        10px;
   --radius-sm:     6px;
@@ -44,7 +45,8 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 15px; }
+/* Increased base font size by 20% (from 15px to 18px) */
+html { font-size: 18px; }
 
 body {
   font-family: var(--font);
@@ -58,16 +60,22 @@ body {
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: #60a5fa; }
 
-/* ── SCROLLBAR ─────────────────────────────────────────────── */
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
-/* ── LAYOUT ────────────────────────────────────────────────── */
+/* ============================================================
+   LAYOUT
+   ============================================================ */
 #app { display: flex; flex-direction: column; min-height: 100vh; }
 
-/* ── HEADER ────────────────────────────────────────────────── */
+/* ============================================================
+   HEADER
+   ============================================================ */
 #header {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   height: var(--header-h);
@@ -145,7 +153,9 @@ a:hover { color: #60a5fa; }
   color: #fff;
 }
 
-/* ── SIDEBAR ───────────────────────────────────────────────── */
+/* ============================================================
+   SIDEBAR - Improved Mobile UX
+   ============================================================ */
 #sidebar {
   position: fixed; top: var(--header-h); left: 0; bottom: 0;
   width: var(--sidebar-width);
@@ -156,7 +166,7 @@ a:hover { color: #60a5fa; }
   z-index: 90; overflow-y: auto; overflow-x: hidden;
 }
 
-#sidebar.collapsed { width: 56px; }
+#sidebar.collapsed { width: var(--sidebar-collapsed-width); }
 #sidebar.collapsed .nav-label,
 #sidebar.collapsed .nav-section-title,
 #sidebar.collapsed .sidebar-footer-text { display: none; }
@@ -202,7 +212,21 @@ a:hover { color: #60a5fa; }
   border-top: 1px solid var(--border);
 }
 
-/* ── MAIN CONTENT ──────────────────────────────────────────── */
+/* Mobile sidebar overlay */
+@media (max-width: 768px) {
+  #sidebar {
+    transform: translateX(-100%);
+    width: var(--sidebar-width);
+  }
+  #sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 2px 0 20px rgba(0,0,0,0.5);
+  }
+}
+
+/* ============================================================
+   MAIN CONTENT - Improved Mobile UX
+   ============================================================ */
 #main {
   margin-top: var(--header-h);
   margin-left: var(--sidebar-width);
@@ -211,23 +235,41 @@ a:hover { color: #60a5fa; }
   min-height: calc(100vh - var(--header-h));
   display: flex; flex-direction: column;
 }
-#sidebar.collapsed ~ #main { margin-left: 56px; }
+
+#sidebar.collapsed ~ #main { margin-left: var(--sidebar-collapsed-width); }
+
+@media (max-width: 768px) {
+  #main { margin-left: 0 !important; }
+}
 
 .page-content {
   flex: 1;
   padding: 24px;
   display: none;
 }
+
+@media (max-width: 768px) {
+  .page-content { padding: 16px; }
+}
+
+@media (max-width: 480px) {
+  .page-content { padding: 12px; }
+}
+
 .page-content.active { display: block; }
 
-/* ── PAGE HEADER ───────────────────────────────────────────── */
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
 .page-header { margin-bottom: 24px; }
 .page-header h1 {
   font-size: 1.5rem; font-weight: 700; letter-spacing: -0.3px;
 }
 .page-header p { color: var(--text-secondary); font-size: 0.875rem; margin-top: 4px; }
 
-/* ── CARDS / GRID ──────────────────────────────────────────── */
+/* ============================================================
+   CARDS / GRID
+   ============================================================ */
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -251,7 +293,9 @@ a:hover { color: #60a5fa; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 
-/* ── STAT WIDGETS ──────────────────────────────────────────── */
+/* ============================================================
+   STAT WIDGETS
+   ============================================================ */
 .stat-widget {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -276,7 +320,9 @@ a:hover { color: #60a5fa; }
 .stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1; letter-spacing: -0.5px; }
 .stat-change { font-size: 0.72rem; color: var(--accent-green); margin-top: 4px; }
 
-/* ── TOOLS GRID ────────────────────────────────────────────── */
+/* ============================================================
+   TOOLS GRID - Improved Mobile Layout
+   ============================================================ */
 .tool-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -322,11 +368,24 @@ a:hover { color: #60a5fa; }
 }
 .tool-card:hover .tool-visit { gap: 8px; }
 
-/* ── FILTER BAR ────────────────────────────────────────────── */
+/* ============================================================
+   FILTER BAR - Improved Mobile Layout
+   ============================================================ */
 .filter-bar {
   display: flex; flex-wrap: wrap; gap: 8px;
   margin-bottom: 20px; align-items: center;
 }
+
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-btn {
+    width: 100%;
+  }
+}
+
 .filter-btn {
   padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 500;
   border: 1px solid var(--border); background: var(--bg-card);
@@ -343,13 +402,23 @@ a:hover { color: #60a5fa; }
   background: var(--bg-card); border: 1px solid var(--border);
   border-radius: 8px; padding: 7px 12px; flex: 1; max-width: 320px;
 }
+
+@media (max-width: 768px) {
+  .search-box {
+    max-width: 100%;
+    order: -1;
+  }
+}
+
 .search-box input {
   background: none; border: none; outline: none;
   color: var(--text-primary); font-size: 0.85rem; width: 100%;
 }
 .search-box input::placeholder { color: var(--text-muted); }
 
-/* ── NEWS FEED ─────────────────────────────────────────────── */
+/* ============================================================
+   NEWS FEED
+   ============================================================ */
 .news-item {
   padding: 14px 0;
   border-bottom: 1px solid var(--border);
@@ -371,7 +440,9 @@ a:hover { color: #60a5fa; }
   background: var(--accent-glow); color: var(--accent); font-weight: 600;
 }
 
-/* ── PROMPTS ───────────────────────────────────────────────── */
+/* ============================================================
+   PROMPTS
+   ============================================================ */
 .prompt-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -405,7 +476,9 @@ a:hover { color: #60a5fa; }
 .btn-copy:hover { border-color: var(--accent); color: var(--accent); }
 .btn-copy.copied { border-color: var(--accent-green); color: var(--accent-green); }
 
-/* ── COURSES / LEARN ───────────────────────────────────────── */
+/* ============================================================
+   COURSES / LEARN
+   ============================================================ */
 .course-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -435,7 +508,9 @@ a:hover { color: #60a5fa; }
 }
 .progress-label { font-size: 0.72rem; color: var(--text-muted); }
 
-/* ── GLOSSARY ──────────────────────────────────────────────── */
+/* ============================================================
+   GLOSSARY
+   ============================================================ */
 .glossary-item {
   padding: 16px 0;
   border-bottom: 1px solid var(--border);
@@ -448,7 +523,9 @@ a:hover { color: #60a5fa; }
 }
 .glossary-def { font-size: 0.83rem; color: var(--text-secondary); line-height: 1.6; }
 
-/* ── AI WIDGET ─────────────────────────────────────────────── */
+/* ============================================================
+   AI WIDGET - Improved Mobile Layout
+   ============================================================ */
 .ai-widget { display: flex; flex-direction: column; gap: 12px; }
 .ai-messages {
   background: var(--bg-primary);
@@ -479,6 +556,17 @@ a:hover { color: #60a5fa; }
   display: flex; align-items: center; gap: 5px;
 }
 .btn-send:hover { background: #2563eb; }
+
+@media (max-width: 768px) {
+  .ai-input-row {
+    flex-direction: column;
+  }
+  .btn-send {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .api-key-row {
   display: flex; gap: 8px; align-items: center;
 }
@@ -492,7 +580,9 @@ a:hover { color: #60a5fa; }
 .api-key-row input:focus { border-color: var(--accent); }
 .api-label { font-size: 0.72rem; color: var(--text-muted); }
 
-/* ── TICKER ────────────────────────────────────────────────── */
+/* ============================================================
+   TICKER
+   ============================================================ */
 .ticker-wrap {
   background: linear-gradient(90deg, rgba(59,130,246,0.08), rgba(99,102,241,0.08));
   border: 1px solid var(--border);
@@ -505,26 +595,46 @@ a:hover { color: #60a5fa; }
 .ticker-inner { display: inline-block; animation: ticker 35s linear infinite; }
 .ticker-inner:hover { animation-play-state: paused; }
 .ticker-item { font-size: 0.8rem; color: var(--text-secondary); display: inline-block; padding: 0 32px; }
-.ticker-item::before { content: '◆ '; color: var(--accent); font-size: 0.6rem; vertical-align: middle; }
+.ticker-item::before { content: '\25c6 '; color: var(--accent); font-size: 0.6rem; vertical-align: middle; }
 @keyframes ticker {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
 
-/* ── DASHBOARD OVERVIEW ────────────────────────────────────── */
+/* ============================================================
+   DASHBOARD OVERVIEW - Improved Mobile Layout
+   ============================================================ */
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
+
 .bottom-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 16px;
 }
 
-/* ── BUTTONS ───────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .overview-grid { grid-template-columns: repeat(2, 1fr); }
+  .bottom-grid { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .overview-grid { grid-template-columns: 1fr 1fr; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .overview-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
 .btn {
   padding: 8px 18px; border-radius: var(--radius-sm); font-size: 0.85rem;
   font-weight: 500; cursor: pointer; transition: all var(--transition);
@@ -540,7 +650,9 @@ a:hover { color: #60a5fa; }
 .btn-danger { background: var(--accent-red); color: #fff; }
 .btn-danger:hover { background: #dc2626; }
 
-/* ── BADGE ─────────────────────────────────────────────────── */
+/* ============================================================
+   BADGE
+   ============================================================ */
 .badge {
   font-size: 0.68rem; padding: 2px 7px; border-radius: 4px;
   font-weight: 600; display: inline-block;
@@ -548,7 +660,9 @@ a:hover { color: #60a5fa; }
 .badge-blue { background: var(--accent-glow); color: var(--accent); border: 1px solid rgba(59,130,246,0.3); }
 .badge-green { background: rgba(16,185,129,0.1); color: var(--accent-green); border: 1px solid rgba(16,185,129,0.3); }
 
-/* ── MODAL ─────────────────────────────────────────────────── */
+/* ============================================================
+   MODAL - Improved Mobile UX
+   ============================================================ */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.7);
   backdrop-filter: blur(4px);
@@ -558,10 +672,19 @@ a:hover { color: #60a5fa; }
 .modal-overlay.open { opacity: 1; pointer-events: all; }
 .modal {
   background: var(--bg-secondary); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 28px; width: 90%; max-width: 480px;
+  border-radius: var(--radius); padding: 28px; width: 90%; max-width: 560px;
   max-height: 90vh; overflow-y: auto;
   transform: scale(0.95); transition: transform var(--transition);
 }
+
+@media (max-width: 480px) {
+  .modal {
+    width: 95%;
+    padding: 20px;
+    margin: 20px;
+  }
+}
+
 .modal-overlay.open .modal { transform: scale(1); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .modal-title { font-size: 1.05rem; font-weight: 700; }
@@ -580,7 +703,9 @@ a:hover { color: #60a5fa; }
 .form-select option { background: var(--bg-card); }
 .form-textarea { min-height: 100px; resize: vertical; line-height: 1.6; }
 
-/* ── FOOTER ────────────────────────────────────────────────── */
+/* ============================================================
+   FOOTER - Improved Mobile Layout
+   ============================================================ */
 footer {
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
@@ -589,13 +714,32 @@ footer {
   flex-wrap: wrap; gap: 8px;
   font-size: 0.75rem; color: var(--text-muted);
 }
+
+@media (max-width: 480px) {
+  footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
 .footer-links { display: flex; gap: 16px; }
+
+@media (max-width: 480px) {
+  .footer-links {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
+
 .footer-links a { color: var(--text-muted); transition: color var(--transition); }
 .footer-links a:hover { color: var(--accent); }
 .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent-green); margin-right: 5px; animation: pulse 2s infinite; }
 @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
 
-/* ── ADMIN STYLES ──────────────────────────────────────────── */
+/* ============================================================
+   ADMIN STYLES
+   ============================================================ */
 .admin-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .admin-table th {
   text-align: left; padding: 10px 14px; font-size: 0.72rem;
@@ -606,8 +750,37 @@ footer {
 .admin-table tr:hover td { background: var(--bg-card-hover); }
 .admin-table tr:last-child td { border-bottom: none; }
 
-/* ── TOAST ─────────────────────────────────────────────────── */
-#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+@media (max-width: 768px) {
+  .admin-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+#toast-container { 
+  position: fixed; 
+  bottom: 24px; 
+  right: 24px; 
+  z-index: 999; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 8px; 
+}
+
+@media (max-width: 480px) {
+  #toast-container {
+    left: 24px;
+    right: 24px;
+    bottom: 16px;
+  }
+  .toast {
+    width: 100%;
+  }
+}
+
 .toast {
   background: var(--bg-card); border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 12px 16px;
@@ -620,7 +793,9 @@ footer {
 .toast.info { border-left: 3px solid var(--accent); }
 @keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
 
-/* ── TOGGLE SWITCH ─────────────────────────────────────────── */
+/* ============================================================
+   TOGGLE SWITCH
+   ============================================================ */
 .toggle {
   position: relative; display: inline-block;
   width: 42px; height: 22px;
@@ -640,7 +815,9 @@ footer {
 .toggle input:checked + .toggle-slider { background: var(--accent); }
 .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
 
-/* ── FAVORITE FAB ──────────────────────────────────────────── */
+/* ============================================================
+   FAVORITE FAB
+   ============================================================ */
 .favorites-section h2 { font-size: 1rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary); }
 .empty-state {
   text-align: center; padding: 32px; color: var(--text-muted);
@@ -648,15 +825,21 @@ footer {
 }
 .empty-state .icon { font-size: 2rem; margin-bottom: 8px; opacity: 0.5; }
 
-/* ── RESPONSIVE ────────────────────────────────────────────── */
+/* ============================================================
+   RESPONSIVE - Enhanced Mobile UX
+   ============================================================ */
 @media (max-width: 1100px) {
   .overview-grid { grid-template-columns: repeat(2, 1fr); }
   .bottom-grid { grid-template-columns: 1fr; }
   .grid-3 { grid-template-columns: repeat(2, 1fr); }
 }
+
 @media (max-width: 768px) {
   :root { --sidebar-width: 0px; }
-  #sidebar { transform: translateX(-100%); width: 240px; }
+  #sidebar { 
+    transform: translateX(-100%); 
+    width: 240px; 
+  }
   #sidebar.mobile-open { transform: translateX(0); }
   #main { margin-left: 0 !important; }
   .overview-grid { grid-template-columns: 1fr 1fr; }
@@ -664,8 +847,188 @@ footer {
   .header-logo { min-width: unset; }
   .header-search { display: none; }
   .page-content { padding: 16px; }
+  
+  /* Mobile-specific improvements */
+  .tool-card, .prompt-card, .course-card {
+    padding: 16px;
+  }
+  
+  .stat-widget {
+    padding: 16px;
+  }
+  
+  .stat-value {
+    font-size: 1.4rem;
+  }
+  
+  /* Better touch targets for mobile */
+  .nav-item {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+  }
+  
+  .btn-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+  
+  .filter-btn {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
 }
+
 @media (max-width: 480px) {
   .overview-grid { grid-template-columns: 1fr; }
   footer { flex-direction: column; align-items: flex-start; }
+  
+  /* Further mobile optimizations */
+  .page-header h1 {
+    font-size: 1.3rem;
+  }
+  
+  .page-header p {
+    font-size: 0.9rem;
+  }
+  
+  .card {
+    padding: 16px;
+  }
+  
+  .card-title {
+    font-size: 0.75rem;
+  }
+  
+  /* Make buttons larger for touch */
+  .btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+  
+  .btn-icon {
+    width: 44px;
+    height: 44px;
+  }
+  
+  /* Improve form inputs on mobile */
+  .form-input, .form-select {
+    padding: 12px 14px;
+    font-size: 0.9rem;
+  }
+  
+  /* Better spacing on small screens */
+  .ai-messages {
+    min-height: 160px;
+  }
+  
+  .msg {
+    font-size: 0.85rem;
+    padding: 10px 12px;
+  }
+}
+
+/* Mobile sidebar backdrop */
+@media (max-width: 768px) {
+  #sidebar.mobile-open::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 89;
+    pointer-events: auto;
+  }
+}
+
+/* ============================================================
+   TOUCH FEEDBACK STYLES - Mobile UX Enhancement
+   ============================================================ */
+.touch-active {
+  transform: scale(0.98);
+  opacity: 0.8;
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+/* Ensure touch targets meet accessibility guidelines (min 44x44px) */
+@media (max-width: 768px) {
+  .nav-item {
+    min-height: 44px;
+  }
+  
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .filter-btn {
+    min-height: 40px;
+  }
+  
+  .tool-fav {
+    min-width: 36px;
+    min-height: 36px;
+  }
+  
+  .btn-copy {
+    min-height: 36px;
+    padding: 8px 16px;
+  }
+  
+  .btn-send {
+    min-height: 44px;
+    padding: 12px 20px;
+  }
+  
+  /* Larger tap targets for form elements */
+  .form-input,
+  .form-select {
+    min-height: 44px;
+    padding: 12px 14px;
+  }
+  
+  /* Better spacing for touch */
+  .tool-card {
+    touch-action: manipulation;
+  }
+  
+  .prompt-card {
+    touch-action: manipulation;
+  }
+  
+  .course-card {
+    touch-action: manipulation;
+  }
+}
+
+/* Prevent double-tap zoom on buttons and interactive elements */
+.btn,
+.btn-icon,
+.filter-btn,
+.nav-item,
+.tool-fav,
+.btn-copy,
+.btn-send,
+.form-input,
+.form-select {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth scrolling for better UX */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Remove focus outline for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
 }

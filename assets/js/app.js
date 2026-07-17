@@ -15,12 +15,13 @@ const App = {
     promptFilter: 'all',
   },
 
-  // ── INIT ──────────────────────────────────────────────────
+  // ─── INIT ─────────────────────────────────────────────────────────────────
   init() {
     this.applyTheme();
     this.applySidebar();
     this.bindNav();
     this.bindHeader();
+    this.bindMobile();
     this.loadPage('dashboard');
     this.initTicker();
     this.checkAuth();
@@ -33,11 +34,11 @@ const App = {
     if (navAdmin) navAdmin.style.display = loggedIn ? 'flex' : 'none';
   },
 
-  // ── THEME ─────────────────────────────────────────────────
+  // ─── THEME ────────────────────────────────────────────────────────────────
   applyTheme() {
     document.documentElement.setAttribute('data-theme', this.state.theme);
     const icon = document.getElementById('theme-icon');
-    if (icon) icon.textContent = this.state.theme === 'dark' ? '☀️' : '🌙';
+    if (icon) icon.textContent = this.state.theme === 'dark' ? '\u2600\ufe0f' : '\ud83c\udf19';
   },
 
   toggleTheme() {
@@ -46,7 +47,7 @@ const App = {
     this.applyTheme();
   },
 
-  // ── SIDEBAR ───────────────────────────────────────────────
+  // ─── SIDEBAR ──────────────────────────────────────────────────────────────
   applySidebar() {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
@@ -59,6 +60,10 @@ const App = {
     if (!sidebar) return;
     if (window.innerWidth <= 768) {
       sidebar.classList.toggle('mobile-open');
+      // Close sidebar when clicking outside on mobile
+      if (sidebar.classList.contains('mobile-open')) {
+        this.bindSidebarBackdrop();
+      }
     } else {
       this.state.sidebarCollapsed = !this.state.sidebarCollapsed;
       localStorage.setItem('ki_sidebar', this.state.sidebarCollapsed ? '1' : '0');
@@ -66,14 +71,117 @@ const App = {
     }
   },
 
-  // ── NAVIGATION ────────────────────────────────────────────
+  bindSidebarBackdrop() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar || window.innerWidth > 768) return;
+    
+    // Close sidebar when clicking on main content
+    const main = document.getElementById('main');
+    if (main) {
+      main.onclick = () => {
+        if (sidebar.classList.contains('mobile-open')) {
+          sidebar.classList.remove('mobile-open');
+        }
+      };
+    }
+  },
+
+  // ─── MOBILE ENHANCEMENTS ──────────────────────────────────────────────────
+  bindMobile() {
+    // Add touch-friendly behaviors
+    this.bindTouchNavigation();
+    this.bindSwipeGestures();
+    this.handleWindowResize();
+  },
+
+  bindTouchNavigation() {
+    // Make nav items more touch-friendly
+    document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+      el.addEventListener('touchstart', () => {
+        // Add active state for touch feedback
+        el.classList.add('touch-active');
+      });
+      el.addEventListener('touchend', () => {
+        el.classList.remove('touch-active');
+      });
+      el.addEventListener('touchcancel', () => {
+        el.classList.remove('touch-active');
+      });
+    });
+
+    // Make buttons more touch-friendly
+    document.querySelectorAll('.btn, .btn-icon, .filter-btn, .tool-fav, .btn-copy, .btn-send').forEach(el => {
+      el.addEventListener('touchstart', () => {
+        el.classList.add('touch-active');
+      });
+      el.addEventListener('touchend', () => {
+        el.classList.remove('touch-active');
+      });
+      el.addEventListener('touchcancel', () => {
+        el.classList.remove('touch-active');
+      });
+    });
+  },
+
+  bindSwipeGestures() {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const sidebar = document.getElementById('sidebar');
+    
+    if (!sidebar) return;
+
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+      if (!touchStartX || !touchStartY) return;
+      
+      const touchEndX = e.changedTouches[0].screenX;
+      const touchEndY = e.changedTouches[0].screenY;
+      const diffX = touchStartX - touchEndX;
+      const diffY = touchStartY - touchEndY;
+      
+      // Only handle horizontal swipes
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+        if (diffX > 0) {
+          // Swipe left to right - open sidebar
+          if (window.innerWidth <= 768 && touchStartX < 50) {
+            sidebar.classList.add('mobile-open');
+          }
+        } else {
+          // Swipe right to left - close sidebar
+          if (window.innerWidth <= 768 && sidebar.classList.contains('mobile-open')) {
+            sidebar.classList.remove('mobile-open');
+          }
+        }
+      }
+      
+      touchStartX = 0;
+      touchStartY = 0;
+    }, { passive: true });
+  },
+
+  handleWindowResize() {
+    // Close sidebar on window resize to desktop
+    window.addEventListener('resize', () => {
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar && window.innerWidth > 768) {
+        sidebar.classList.remove('mobile-open');
+      }
+    });
+  },
+
+  // ─── NAVIGATION ───────────────────────────────────────────────────────────
   bindNav() {
     document.querySelectorAll('.nav-item[data-page]').forEach(el => {
       el.addEventListener('click', () => {
         const page = el.dataset.page;
         this.loadPage(page);
         // close mobile sidebar
-        document.getElementById('sidebar')?.classList.remove('mobile-open');
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.remove('mobile-open');
       });
     });
   },
@@ -99,7 +207,7 @@ const App = {
     if (loaders[page]) loaders[page]();
   },
 
-  // ── HEADER ────────────────────────────────────────────────
+  // ─── HEADER ───────────────────────────────────────────────────────────────
   bindHeader() {
     const searchInput = document.getElementById('global-search');
     if (searchInput) {
@@ -123,7 +231,7 @@ const App = {
     // Simple global search hint – navigate to tools with filter
   },
 
-  // ── TICKER ────────────────────────────────────────────────
+  // ─── TICKER ───────────────────────────────────────────────────────────────
   initTicker() {
     fetch('api.php?action=ticker')
       .then(r => r.json())
@@ -136,7 +244,7 @@ const App = {
       .catch(() => {});
   },
 
-  // ── DASHBOARD ─────────────────────────────────────────────
+  // ─── DASHBOARD ────────────────────────────────────────────────────────────
   loadDashboard() {
     fetch('api.php?action=dashboard')
       .then(r => r.json())
@@ -158,7 +266,7 @@ const App = {
     };
     Object.entries(map).forEach(([id, val]) => {
       const el = document.getElementById(id);
-      if (el) el.textContent = val ?? '—';
+      if (el) el.textContent = val ?? '\u2014';
     });
   },
 
@@ -184,16 +292,16 @@ const App = {
     if (!el) return;
     const favs = this.state.favorites;
     if (!favs.length) {
-      el.innerHTML = '<div class="empty-state"><div class="icon">⭐</div>Noch keine Favoriten.<br>Markiere Tools oder Prompts als Favorit.</div>';
+      el.innerHTML = '<div class="empty-state"><div class="icon">\u2b50</div>Noch keine Favoriten.<br>Markiere Tools oder Prompts als Favorit.</div>';
       return;
     }
     el.innerHTML = favs.slice(0,4).map(f => `
       <span class="tag" style="cursor:pointer;padding:5px 10px" onclick="App.loadPage('${f.type === 'tool' ? 'tools' : 'prompts'}')">
-        ${f.type === 'tool' ? '🔧' : '📝'} ${esc(f.name)}
+        ${f.type === 'tool' ? '\ud83d\udd27' : '\ud83d\udcdd'} ${esc(f.name)}
       </span>`).join('');
   },
 
-  // ── TOOLS ─────────────────────────────────────────────────
+  // ─── TOOLS ────────────────────────────────────────────────────────────────
   _toolsData: null,
 
   loadTools() {
@@ -216,15 +324,15 @@ const App = {
       tools = tools.filter(t => t.name.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q) || (t.tags||[]).some(tag => tag.toLowerCase().includes(q)));
     }
     if (!tools.length) {
-      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🔍</div>Keine Tools gefunden.</div>';
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">\ud83d\udd0d</div>Keine Tools gefunden.</div>';
       return;
     }
     const favIds = this.state.favorites.filter(f=>f.type==='tool').map(f=>f.id);
     grid.innerHTML = tools.map(t => `
       <div class="tool-card" id="tool-${t.id}">
         <div class="tool-card-header">
-          <div class="tool-icon">${t.icon || '🤖'}</div>
-          <button class="tool-fav ${favIds.includes(t.id)?'active':''}" onclick="App.toggleFav('tool','${t.id}','${esc(t.name)}',this)" title="Favorit">★</button>
+          <div class="tool-icon">${t.icon || '\ud83e\udd16'}</div>
+          <button class="tool-fav ${favIds.includes(t.id)?'active':''}" onclick="App.toggleFav('tool','${t.id}','${esc(t.name)}',this)" title="Favorit">\u2605</button>
         </div>
         <div class="tool-name">${esc(t.name)}</div>
         <div class="tool-desc">${esc(t.desc)}</div>
@@ -233,14 +341,14 @@ const App = {
           <span class="tag ${t.price}">${esc(t.price)}</span>
           ${(t.tags||[]).map(tag=>`<span class="tag">${esc(tag)}</span>`).join('')}
         </div>
-        ${t.url ? `<div><a href="${esc(t.url)}" target="_blank" rel="noopener" class="tool-visit">Öffnen →</a></div>` : ''}
+        ${t.url ? `<div><a href="${esc(t.url)}" target="_blank" rel="noopener" class="tool-visit">\u00d6ffnen \u2192</a></div>` : ''}
       </div>`).join('');
   },
 
   setToolFilter(type, val) {
     this.state.currentFilter[type] = val;
-    document.querySelectorAll(`.filter-btn[data-filter="${type}"]`).forEach(b => b.classList.remove('active'));
-    document.querySelector(`.filter-btn[data-filter="${type}"][data-val="${val}"]`)?.classList.add('active');
+    document.querySelectorAll(`[data-filter="${type}"]`).forEach(b => b.classList.remove('active'));
+    document.querySelector(`[data-filter="${type}"][data-val="${val}"]`)?.classList.add('active');
     this.renderTools();
   },
 
@@ -249,7 +357,7 @@ const App = {
     this.renderTools();
   },
 
-  // ── PROMPTS ───────────────────────────────────────────────
+  // ─── PROMPTS ──────────────────────────────────────────────────────────────
   _promptsData: null,
 
   loadPrompts() {
@@ -267,7 +375,7 @@ const App = {
     if (this.state.promptFilter !== 'all') prompts = prompts.filter(p => p.category === this.state.promptFilter);
     const favIds = this.state.favorites.filter(f=>f.type==='prompt').map(f=>f.id);
     if (!prompts.length) {
-      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">📝</div>Keine Prompts gefunden.</div>';
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">\ud83d\udcdd</div>Keine Prompts gefunden.</div>';
       return;
     }
     grid.innerHTML = prompts.map(p => `
@@ -277,11 +385,11 @@ const App = {
             <div class="prompt-title">${esc(p.title)}</div>
             <span class="tag cat" style="margin-top:4px;display:inline-block">${esc(p.category)}</span>
           </div>
-          <button class="tool-fav ${favIds.includes(p.id)?'active':''}" onclick="App.toggleFav('prompt','${p.id}','${esc(p.title)}',this)" title="Favorit">★</button>
+          <button class="tool-fav ${favIds.includes(p.id)?'active':''}" onclick="App.toggleFav('prompt','${p.id}','${esc(p.title)}',this)" title="Favorit">\u2605</button>
         </div>
         <pre class="prompt-text">${esc(p.text)}</pre>
         <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn-copy" onclick="App.copyPrompt(this,'${p.id}')"><span>📋</span> Kopieren</button>
+          <button class="btn-copy" onclick="App.copyPrompt(this,'${p.id}')"><span>\ud83d\udccb</span> Kopieren</button>
           <span style="font-size:.75rem;color:var(--text-muted)">${esc(p.desc||'')}</span>
         </div>
       </div>`).join('');
@@ -292,8 +400,8 @@ const App = {
     if (!prompt) return;
     navigator.clipboard.writeText(prompt.text).then(() => {
       btn.classList.add('copied');
-      btn.innerHTML = '<span>✅</span> Kopiert!';
-      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '<span>📋</span> Kopieren'; }, 2000);
+      btn.innerHTML = '<span>\u2705</span> Kopiert!';
+      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '<span>\ud83d\udccb</span> Kopieren'; }, 2000);
     });
   },
 
@@ -304,7 +412,7 @@ const App = {
     this.renderPrompts();
   },
 
-  // ── LEARN ─────────────────────────────────────────────────
+  // ─── LEARN ────────────────────────────────────────────────────────────────
   _learnData: null,
 
   loadLearn() {
@@ -322,13 +430,13 @@ const App = {
       const prog = this.state.progress[c.id] || 0;
       return `<div class="course-card" onclick="App.openCourse('${c.id}')">
         <div class="course-banner" style="background:${c.color||'linear-gradient(135deg,#1e3a5f,#0f2147)'}">
-          <span>${c.icon||'📚'}</span>
+          <span>${c.icon||'\ud83d\udcda'}</span>
         </div>
         <div class="course-body">
           <div class="course-title">${esc(c.title)}</div>
           <div class="course-desc">${esc(c.desc)}</div>
           <div class="progress-bar-wrap"><div class="progress-bar" style="width:${prog}%"></div></div>
-          <div class="progress-label">${prog}% abgeschlossen · ${c.lessons||0} Lektionen</div>
+          <div class="progress-label">${prog}% abgeschlossen \u00b7 ${c.lessons||0} Lektionen</div>
         </div>
       </div>`;
     }).join('');
@@ -351,10 +459,10 @@ const App = {
       this.state.progress[id] = 10;
       localStorage.setItem('ki_progress', JSON.stringify(this.state.progress));
     }
-    App.showToast('Kurs geöffnet – Funktion wird ausgebaut!', 'info');
+    App.showToast('Kurs ge\u00f6ffnet \u2013 Funktion wird ausgebaut!', 'info');
   },
 
-  // ── NEWS ──────────────────────────────────────────────────
+  // ─── NEWS ─────────────────────────────────────────────────────────────────
   _newsData: null,
 
   loadNews() {
@@ -379,29 +487,29 @@ const App = {
           <span style="font-size:.75rem;color:var(--text-muted);white-space:nowrap">${esc(n.date)}</span>
         </div>
         <p style="font-size:.83rem;color:var(--text-secondary);line-height:1.6">${esc(n.content||n.excerpt||'')}</p>
-        ${n.url ? `<a href="${esc(n.url)}" target="_blank" rel="noopener" class="tool-visit" style="margin-top:8px;display:inline-flex">Mehr lesen →</a>` : ''}
+        ${n.url ? `<a href="${esc(n.url)}" target="_blank" rel="noopener" class="tool-visit" style="margin-top:8px;display:inline-flex">Mehr lesen \u2192</a>` : ''}
       </div>`).join('');
   },
 
-  // ── FAVORITES ─────────────────────────────────────────────
+  // ─── FAVORITES ─────────────────────────────────────────────────────────────
   loadFavorites() {
     const el = document.getElementById('fav-list');
     if (!el) return;
     const favs = this.state.favorites;
     if (!favs.length) {
-      el.innerHTML = '<div class="empty-state"><div class="icon">⭐</div>Noch keine Favoriten gespeichert.<br>Klicke bei Tools oder Prompts auf das ★-Symbol.</div>';
+      el.innerHTML = '<div class="empty-state"><div class="icon">\u2b50</div>Noch keine Favoriten gespeichert.<br>Klicke bei Tools oder Prompts auf das \u2605-Symbol.</div>';
       return;
     }
     el.innerHTML = favs.map(f => `
       <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:1.2rem">${f.type==='tool'?'🔧':'📝'}</span>
+          <span style="font-size:1.2rem">${f.type==='tool'?'\ud83d\udd27':'\ud83d\udcdd'}</span>
           <div>
             <div style="font-weight:600;font-size:.9rem">${esc(f.name)}</div>
             <div style="font-size:.75rem;color:var(--text-muted)">${f.type==='tool'?'Tool':'Prompt'}</div>
           </div>
         </div>
-        <button class="btn-icon" onclick="App.removeFav('${f.id}')" title="Entfernen">✕</button>
+        <button class="btn-icon" onclick="App.removeFav('${f.id}')" title="Entfernen">\u2715</button>
       </div>`).join('');
   },
 
@@ -414,7 +522,7 @@ const App = {
     } else {
       this.state.favorites.push({ type, id, name });
       btn.classList.add('active');
-      App.showToast(`"${name}" zu Favoriten hinzugefügt`, 'success');
+      App.showToast(`"${name}" zu Favoriten hinzugef\u00fcgt`, 'success');
     }
     localStorage.setItem('ki_favorites', JSON.stringify(this.state.favorites));
     this.renderFavoriteWidgets();
@@ -427,7 +535,7 @@ const App = {
     this.renderFavoriteWidgets();
   },
 
-  // ── AI WIDGET ─────────────────────────────────────────────
+  // ─── AI WIDGET ─────────────────────────────────────────────────────────────
   saveApiKey() {
     const key = document.getElementById('ai-api-key')?.value.trim();
     const model = document.getElementById('ai-model')?.value;
@@ -436,7 +544,7 @@ const App = {
     this.state.apiModel = model;
     localStorage.setItem('ki_api_key', key);
     localStorage.setItem('ki_api_model', model);
-    App.showToast('API-Key gespeichert ✓', 'success');
+    App.showToast('API-Key gespeichert \u2713', 'success');
   },
 
   async sendAiMessage() {
@@ -449,7 +557,7 @@ const App = {
 
     input.value = '';
     msgs.innerHTML += `<div class="msg user">${esc(text)}</div>`;
-    msgs.innerHTML += `<div class="msg bot" id="bot-typing"><div class="msg-label">KI</div><span style="opacity:.5">Denkt nach…</span></div>`;
+    msgs.innerHTML += `<div class="msg bot" id="bot-typing"><div class="msg-label">KI</div><span style="opacity:.5">Denkt nach\u2026</span></div>`;
     msgs.scrollTop = msgs.scrollHeight;
 
     try {
@@ -468,29 +576,33 @@ const App = {
     msgs.scrollTop = msgs.scrollHeight;
   },
 
-  // ── TOAST ─────────────────────────────────────────────────
+  // ─── TOAST ─────────────────────────────────────────────────────────────────
   showToast(msg, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
-    const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+    const icons = { success: '\u2705', error: '\u274c', info: '\u2139\ufe0f' };
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${esc(msg)}</span>`;
+    toast.innerHTML = `<span>${icons[type]||'\u2139\ufe0f'}</span><span>${esc(msg)}</span>`;
     container.appendChild(toast);
     setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(100%)'; toast.style.transition='.3s'; setTimeout(()=>toast.remove(),300); }, 3500);
   },
 };
 
-// ── HELPERS ──────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
 function esc(str) {
   if (str === null || str === undefined) return '';
   return String(str)
     .replace(/&/g,'&amp;')
     .replace(/</g,'&lt;')
     .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
+    .replace(/\"/g,'&quot;')
     .replace(/'/g,'&#039;');
 }
 
-// ── BOOT ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => App.init());
