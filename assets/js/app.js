@@ -15,7 +15,7 @@ const App = {
     promptFilter: 'all',
   },
 
-  // ─── INIT ─────────────────────────────────────────────────────────────────
+  // ███ INIT ██████████████████████████████████████████████████████████████████████████████████████████████████████████
   init() {
     this.applyTheme();
     this.applySidebar();
@@ -34,7 +34,7 @@ const App = {
     if (navAdmin) navAdmin.style.display = loggedIn ? 'flex' : 'none';
   },
 
-  // ─── THEME ────────────────────────────────────────────────────────────────
+  // ███ THEME ███████████████████████████████████████████████████████████████████████████████████████████
   applyTheme() {
     document.documentElement.setAttribute('data-theme', this.state.theme);
     const icon = document.getElementById('theme-icon');
@@ -47,7 +47,7 @@ const App = {
     this.applyTheme();
   },
 
-  // ─── SIDEBAR ──────────────────────────────────────────────────────────────
+  // ███ SIDEBAR ██████████████████████████████████████████████████████████████████████████████████████
   applySidebar() {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
@@ -86,7 +86,7 @@ const App = {
     }
   },
 
-  // ─── MOBILE ENHANCEMENTS ──────────────────────────────────────────────────
+  // ███ MOBILE ENHANCEMENTS █████████████████████████████████████████████████████████████████
   bindMobile() {
     // Add touch-friendly behaviors
     this.bindTouchNavigation();
@@ -173,7 +173,7 @@ const App = {
     });
   },
 
-  // ─── NAVIGATION ───────────────────────────────────────────────────────────
+  // ███ NAVIGATION ███████████████████████████████████████████████████████████████████████████████
   bindNav() {
     document.querySelectorAll('.nav-item[data-page]').forEach(el => {
       el.addEventListener('click', () => {
@@ -207,7 +207,7 @@ const App = {
     if (loaders[page]) loaders[page]();
   },
 
-  // ─── HEADER ───────────────────────────────────────────────────────────────
+  // ███ HEADER ██████████████████████████████████████████████████████████████████████████████
   bindHeader() {
     const searchInput = document.getElementById('global-search');
     if (searchInput) {
@@ -231,7 +231,7 @@ const App = {
     // Simple global search hint – navigate to tools with filter
   },
 
-  // ─── TICKER ───────────────────────────────────────────────────────────────
+  // ███ TICKER ██████████████████████████████████████████████████████████████████████████████████████
   initTicker() {
     fetch('api.php?action=ticker')
       .then(r => r.json())
@@ -244,7 +244,7 @@ const App = {
       .catch(() => {});
   },
 
-  // ─── DASHBOARD ────────────────────────────────────────────────────────────
+  // ███ DASHBOARD ██████████████████████████████████████████████████████████████████████████████
   loadDashboard() {
     fetch('api.php?action=dashboard')
       .then(r => r.json())
@@ -275,7 +275,7 @@ const App = {
     if (!el || !items) return;
     if (!items.length) { el.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem">Keine News vorhanden.</p>'; return; }
     el.innerHTML = items.slice(0, 5).map(n => `
-      <div class="news-item">
+      <div class="news-item" onclick="${n.url ? `window.open('${esc(n.url)}', '_blank')` : 'App.loadPage(\'news\')'}" style="cursor:pointer">
         <div class="news-dot ${n.color || ''}"></div>
         <div>
           <div class="news-title">${esc(n.title)}</div>
@@ -301,7 +301,7 @@ const App = {
       </span>`).join('');
   },
 
-  // ─── TOOLS ────────────────────────────────────────────────────────────────
+  // ███ TOOLS ████████████████████████████████████████████████████████████████████████████████████
   _toolsData: null,
 
   loadTools() {
@@ -357,7 +357,7 @@ const App = {
     this.renderTools();
   },
 
-  // ─── PROMPTS ──────────────────────────────────────────────────────────────
+  // ███ PROMPTS ████████████████████████████████████████████████████████████████████████████
   _promptsData: null,
 
   loadPrompts() {
@@ -412,7 +412,7 @@ const App = {
     this.renderPrompts();
   },
 
-  // ─── LEARN ────────────────────────────────────────────────────────────────
+  // ███ LEARN ████████████████████████████████████████████████████████████████████████████████
   _learnData: null,
 
   loadLearn() {
@@ -462,7 +462,7 @@ const App = {
     App.showToast('Kurs ge\u00f6ffnet \u2013 Funktion wird ausgebaut!', 'info');
   },
 
-  // ─── NEWS ─────────────────────────────────────────────────────────────────
+  // ███ NEWS ███████████████████████████████████████████████████████████████████████████████████
   _newsData: null,
 
   loadNews() {
@@ -491,7 +491,7 @@ const App = {
       </div>`).join('');
   },
 
-  // ─── FAVORITES ─────────────────────────────────────────────────────────────
+  // ███ FAVORITES ██████████████████████████████████████████████████████████████████████
   loadFavorites() {
     const el = document.getElementById('fav-list');
     if (!el) return;
@@ -535,7 +535,7 @@ const App = {
     this.renderFavoriteWidgets();
   },
 
-  // ─── AI WIDGET ─────────────────────────────────────────────────────────────
+  // ███ AI WIDGET █████████████████████████████████████████████████████████████████████████
   saveApiKey() {
     const key = document.getElementById('ai-api-key')?.value.trim();
     const model = document.getElementById('ai-model')?.value;
@@ -576,7 +576,7 @@ const App = {
     msgs.scrollTop = msgs.scrollHeight;
   },
 
-  // ─── TOAST ─────────────────────────────────────────────────────────────────
+  // ███ TOAST █████████████████████████████████████████████████████████████████████████
   showToast(msg, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -589,9 +589,9 @@ const App = {
   },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// █████████████████████████████████████████████████████████████████████████████████████████████████
 // HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+// █████████████████████████████████████████████████████████████████████████████████████████████████████
 function formatDate(dateStr) {
   if (!dateStr) return '';
   try {
@@ -612,7 +612,7 @@ function esc(str) {
     .replace(/'/g,'&#039;');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ██████████████████████████████████████████████████████████████████████████████████████████████████████
 // BOOT
-// ─────────────────────────────────────────────────────────────────────────────
+// █████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 document.addEventListener('DOMContentLoaded', () => App.init());
