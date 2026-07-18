@@ -53,7 +53,7 @@ if (!isset($_SESSION[ADMIN_SESSION]) || !$_SESSION[ADMIN_SESSION]) {
   <main id="main" style="margin-left:0; padding:80px 24px 40px">
     <div class="page-header">
       <h1>⚙️ Admin-Bereich</h1>
-      <p>Inhalte verwalten – Tools, Prompts, Kurse, Glossar und <strong>RSS-Feeds</strong> (Aktuelles)</p>
+      <p>Inhalte verwalten – Tools, Prompts, News, Kurse, Glossar und RSS-Feeds</p>
     </div>
 
     <!-- Tabs -->
@@ -97,8 +97,8 @@ if (!isset($_SESSION[ADMIN_SESSION]) || !$_SESSION[ADMIN_SESSION]) {
     <!-- ── NEWS ──────────────────────────────────────────── -->
     <div id="tab-news" class="admin-section">
       <div class="admin-header-bar">
-        <h2 style="font-size:1rem;font-weight:600">RSS-Nachrichten (Aktuelles)</h2>
-        <button class="btn btn-outline" onclick="refreshRssCache()">🔄 RSS-Cache aktualisieren</button>
+        <h2 style="font-size:1rem;font-weight:600">News-Beiträge verwalten</h2>
+        <button class="btn btn-primary" onclick="openModal('news')">+ Neue Meldung</button>
       </div>
       <div class="table-wrap">
         <table class="admin-table">
@@ -398,9 +398,10 @@ function showTab(name) {
 const loaders = {
   tools: loadTools,
   prompts: loadPrompts,
-  news: loadRssNews,
+  news: loadNews,
   courses: loadCourses,
   glossary: loadGlossary,
+  rss: loadRssFeeds,
 };
 
 // ── INITIAL LOAD ────────────────────────────────────────
@@ -744,13 +745,33 @@ async function refreshRssCache() {
 }
 
 
-function formatAdminDate(dateStr) {
-  if (!dateStr) return '';
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('de-DE', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch (e) {
-    return dateStr.substring(0, 10);
+// RSS FEEDS
+let rssFeeds = [];
+
+async function saveRssFeeds() {
+  const r = await fetch('../api.php?action=admin_save_rss_feeds', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ feeds: rssFeeds })
+  });
+  const d = await r.json();
+  if (d.success) {
+    toast('RSS-Feeds gespeichert ✅', 'success');
+  } else {
+    toast('Fehler beim Speichern', 'error');
+  }
+}
+
+async function refreshRssCache() {
+  const r = await fetch('../api.php?action=admin_refresh_rss', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const d = await r.json();
+  if (d.success) {
+    toast(`Cache aktualisiert - ${d.items || 0} Nachrichten geladen`, 'success');
+  } else {
+    toast('Fehler beim Aktualisieren', 'error');
   }
 }
 
