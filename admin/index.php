@@ -744,37 +744,6 @@ async function refreshRssCache() {
   }
 }
 
-
-// RSS FEEDS
-let rssFeeds = [];
-
-async function saveRssFeeds() {
-  const r = await fetch('../api.php?action=admin_save_rss_feeds', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ feeds: rssFeeds })
-  });
-  const d = await r.json();
-  if (d.success) {
-    toast('RSS-Feeds gespeichert ✅', 'success');
-  } else {
-    toast('Fehler beim Speichern', 'error');
-  }
-}
-
-async function refreshRssCache() {
-  const r = await fetch('../api.php?action=admin_refresh_rss', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  });
-  const d = await r.json();
-  if (d.success) {
-    toast(`Cache aktualisiert - ${d.items || 0} Nachrichten geladen`, 'success');
-  } else {
-    toast('Fehler beim Aktualisieren', 'error');
-  }
-}
-
 </script>
 </body>
 </html>
