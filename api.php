@@ -43,11 +43,12 @@ switch ($action) {
     case 'admin_glossary_raw':  requireAdmin(); echo json_encode(['content' => file_exists(DATA_DIR.'glossary.md') ? file_get_contents(DATA_DIR.'glossary.md') : '']); break;
     case 'admin_save_rss_feeds': requireAdmin(); saveRssFeeds(); break;
     case 'admin_refresh_rss':  requireAdmin(); refreshRssCache(); break;
+    case 'admin_sync_github':  requireAdmin(); syncToGithub(); break;
 
     default: echo json_encode(['error' => 'Unknown action']);
 }
 
-// f4cd AUTHENTICATION f4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cd
+// AUTHENTICATION
 function isAdminLoggedIn() {
     return isset($_SESSION[ADMIN_SESSION]) && $_SESSION[ADMIN_SESSION] === true;
 }
@@ -65,16 +66,15 @@ function handleAdminLogin() {
     $config = getConfig();
     $hash = $config['admin_hash'] ?? '';
 
-    // First-run: placeholder hash  accept "admin123" and replace hash
     $isPlaceholder = strpos($hash, 'placeholder') !== false;
     $pw = $data['password'] ?? '';
 
     $valid = false;
     if ($isPlaceholder && $pw === 'admin123') {
-        // Auto-set proper hash on first login
         $config['admin_hash'] = password_hash('admin123', PASSWORD_DEFAULT);
         unset($config['note']);
         file_put_contents(DATA_DIR . 'config.json', json_encode($config, JSON_PRETTY_PRINT));
+        syncToGithub();
         $valid = true;
     } elseif (!$isPlaceholder) {
         $valid = password_verify($pw, $hash);
@@ -97,15 +97,19 @@ function handleAdminLogout() {
 function getConfig() {
     $file = DATA_DIR . 'config.json';
     if (file_exists($file)) return json_decode(file_get_contents($file), true);
-    // Default config (password: "admin123"  NDERN!)
     return [
         'admin_hash' => password_hash('admin123', PASSWORD_DEFAULT),
         'site_title' => 'KI-Dashboard',
         'api_proxy' => false,
+        'rss_feeds' => [
+            ['url' => 'https://www.drweb.de/technologie-innovation/ki/feed/', 'title' => 'DrWeb KI', 'enabled' => true],
+            ['url' => 'https://www.heise.de/thema/Kuenstliche-Intelligenz.xml', 'title' => 'Heise KI', 'enabled' => true],
+            ['url' => 'https://the-decoder.de/feed/', 'title' => 'The Decoder', 'enabled' => true],
+        ],
     ];
 }
 
-// f4cd DATA READERS f4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cd
+// DATA READERS
 function getTools() {
     return readDataDir(DATA_DIR . 'tools/');
 }
@@ -154,7 +158,7 @@ function getDashboardData() {
     ];
 }
 
-// f4f0 RSS FEED FUNCTIONS f4f0f4f0f4f0f4f0f4f0f4f0f4f0f4f0f4f0f4f0f4f0f4f0f4f0f4f0f4f0f4f0f4f0f4f0f4f0
+// RSS FEED FUNCTIONS
 function getRssFeeds() {
     $config = getConfig();
     return $config['rss_feeds'] ?? [
@@ -168,9 +172,8 @@ function getRssNews() {
     $feeds = getRssFeeds();
     $allItems = [];
     $cacheFile = DATA_DIR . 'rss_cache.json';
-    $cacheTime = 3600; // 1 hour cache
+    $cacheTime = 3600;
     
-    // Try to load from cache first
     if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < $cacheTime)) {
         $cached = json_decode(file_get_contents($cacheFile), true);
         if ($cached && isset($cached['items'])) {
@@ -178,23 +181,19 @@ function getRssNews() {
         }
     }
     
-    // Fetch fresh data
     foreach ($feeds as $feed) {
         if (empty($feed['enabled'])) continue;
         $items = fetchRssFeed($feed['url'], $feed['title']);
         $allItems = array_merge($allItems, $items);
     }
     
-    // Sort by date descending
     usort($allItems, function($a, $b) {
         return strcmp($b['pubDate'] ?? '', $a['pubDate'] ?? '');
     });
     
-    // Limit to 50 items
     $allItems = array_slice($allItems, 0, 50);
-    
-    // Save to cache
     file_put_contents($cacheFile, json_encode(['items' => $allItems, 'cached_at' => time()], JSON_PRETTY_PRINT));
+    syncToGithub();
     
     return $allItems;
 }
@@ -202,7 +201,6 @@ function getRssNews() {
 function fetchRssFeed($url, $feedTitle) {
     $items = [];
     
-    // Use cURL to fetch the feed
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
@@ -217,21 +215,16 @@ function fetchRssFeed($url, $feedTitle) {
         return [];
     }
     
-    // Parse XML
     try {
         $rss = new SimpleXMLElement($xml);
-        
-        // Handle different RSS namespaces
         $ns = $rss->getNamespaces(true);
         
-        // Check if it's Atom feed
         if (isset($ns['http://www.w3.org/2005/Atom'])) {
             $items = parseAtomFeed($rss, $feedTitle);
         } else {
             $items = parseRssFeed($rss, $feedTitle);
         }
     } catch (Exception $e) {
-        // Try to parse as HTML or other format
         return [];
     }
     
@@ -247,15 +240,12 @@ function parseRssFeed($rss, $feedTitle) {
         $description = (string)($item->description ?? '');
         $pubDate = (string)($item->pubDate ?? '');
         
-        // Clean up description - remove HTML tags
         $description = strip_tags($description);
         
-        // If no date, use current time
         if (empty($pubDate)) {
             $pubDate = date('r');
         }
         
-        // Format date to Y-m-d
         try {
             $dateObj = new DateTime($pubDate);
             $formattedDate = $dateObj->format('Y-m-d H:i:s');
@@ -288,7 +278,6 @@ function parseAtomFeed($feed, $feedTitle) {
         $description = (string)($entry->summary ?? $entry->content ?? '');
         $pubDate = (string)($entry->published ?? $entry->updated ?? '');
         
-        // Clean up description
         $description = strip_tags($description);
         
         if (empty($pubDate)) {
@@ -318,17 +307,51 @@ function parseAtomFeed($feed, $feedTitle) {
     return $items;
 }
 
-// f4cd GENERIC MD FILE READER f4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cd
-/**
- * Liest alle .md-Dateien aus einem Verzeichnis.
- * Format einer .md-Datei:
- * ---
- * id: tool-chatgpt
- * name: ChatGPT
- * key: value
- * ---
- * Freitext/Beschreibung folgt nach dem zweiten ---
- */
+// GITHUB SYNC
+function syncToGithub() {
+    $repo = 'eifeler/ki-dashboard-v3';
+    $branch = 'main';
+    $token = getenv('GITHUB_TOKEN');
+    
+    if (!$token) {
+        return;
+    }
+    
+    $filesToSync = [
+        'data/config.json',
+        'data/rss_cache.json',
+    ];
+    
+    foreach ($filesToSync as $file) {
+        if (!file_exists($file)) continue;
+        
+        $content = file_get_contents($file);
+        $base64Content = base64_encode($content);
+        
+        $apiUrl = "https://api.github.com/repos/{$repo}/contents/{$file}";
+        
+        $ch = curl_init($apiUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: token ' . $token,
+            'Content-Type: application/json',
+            'User-Agent: KI-Dashboard',
+        ]);
+        
+        $payload = json_encode([
+            'message' => 'Auto-sync RSS cache',
+            'content' => $base64Content,
+            'branch' => $branch,
+        ]);
+        
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        curl_exec($ch);
+        curl_close($ch);
+    }
+}
+
+// GENERIC MD FILE READER
 function readDataDir($dir) {
     if (!is_dir($dir)) return [];
     $items = [];
@@ -353,7 +376,6 @@ function parseMdFile($content) {
             [$key, $val] = explode(':', $line, 2);
             $key = trim($key);
             $val = trim($val);
-            // Arrays: comma-separated in brackets [a, b, c]
             if (preg_match('/^\[(.+)\]$/', $val, $m)) {
                 $val = array_map('trim', explode(',', $m[1]));
             }
@@ -380,7 +402,7 @@ function parseGlossaryMd($content) {
     return $items;
 }
 
-// f4cd FILE WRITERS f4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cd
+// FILE WRITERS
 function generateMd($data, $contentKey = null) {
     $out = "---\n";
     foreach ($data as $k => $v) {
@@ -401,13 +423,18 @@ function saveTool() {
     if (!$id) $id = 'tool-' . time();
     $file = DATA_DIR . 'tools/' . $id . '.md';
     file_put_contents($file, generateMd($data, 'content'));
+    syncToGithub();
     echo json_encode(['success' => true, 'id' => $id]);
 }
 
 function deleteTool() {
     $data = json_decode(file_get_contents('php://input'), true);
     $file = DATA_DIR . 'tools/' . ($data['file'] ?? '');
-    if (file_exists($file)) { unlink($file); echo json_encode(['success' => true]); }
+    if (file_exists($file)) { 
+        unlink($file); 
+        syncToGithub();
+        echo json_encode(['success' => true]); 
+    }
     else echo json_encode(['success' => false, 'error' => 'File not found']);
 }
 
@@ -417,13 +444,18 @@ function savePrompt() {
     if (!$id) $id = 'prompt-' . time();
     $file = DATA_DIR . 'prompts/' . $id . '.md';
     file_put_contents($file, generateMd($data, 'text'));
+    syncToGithub();
     echo json_encode(['success' => true]);
 }
 
 function deletePrompt() {
     $data = json_decode(file_get_contents('php://input'), true);
     $file = DATA_DIR . 'prompts/' . ($data['file'] ?? '');
-    if (file_exists($file)) { unlink($file); echo json_encode(['success' => true]); }
+    if (file_exists($file)) { 
+        unlink($file); 
+        syncToGithub();
+        echo json_encode(['success' => true]); 
+    }
     else echo json_encode(['success' => false]);
 }
 
@@ -434,13 +466,18 @@ function saveNews() {
     if (!$id) $id = 'news-' . date('Ymd-His');
     $file = DATA_DIR . 'news/' . $id . '.md';
     file_put_contents($file, generateMd($data, 'content'));
+    syncToGithub();
     echo json_encode(['success' => true]);
 }
 
 function deleteNews() {
     $data = json_decode(file_get_contents('php://input'), true);
     $file = DATA_DIR . 'news/' . ($data['file'] ?? '');
-    if (file_exists($file)) { unlink($file); echo json_encode(['success' => true]); }
+    if (file_exists($file)) { 
+        unlink($file); 
+        syncToGithub();
+        echo json_encode(['success' => true]); 
+    }
     else echo json_encode(['success' => false]);
 }
 
@@ -450,6 +487,7 @@ function saveCourse() {
     if (!$id) $id = 'course-' . time();
     $file = DATA_DIR . 'courses/' . $id . '.md';
     file_put_contents($file, generateMd($data, 'content'));
+    syncToGithub();
     echo json_encode(['success' => true]);
 }
 
@@ -457,6 +495,7 @@ function saveGlossary() {
     $data = json_decode(file_get_contents('php://input'), true);
     if (!isset($data['content'])) { echo json_encode(['success' => false]); return; }
     file_put_contents(DATA_DIR . 'glossary.md', $data['content']);
+    syncToGithub();
     echo json_encode(['success' => true]);
 }
 
@@ -468,25 +507,23 @@ function saveRssFeeds() {
     $config['rss_feeds'] = $feeds;
     
     file_put_contents(DATA_DIR . 'config.json', json_encode($config, JSON_PRETTY_PRINT));
+    syncToGithub();
     
-    // Refresh cache after saving feeds
     refreshRssCache();
     
     echo json_encode(['success' => true]);
 }
 
 function refreshRssCache() {
-    // Force refresh by deleting cache
     $cacheFile = DATA_DIR . 'rss_cache.json';
     if (file_exists($cacheFile)) {
         unlink($cacheFile);
     }
     
-    // Fetch fresh data
     $items = getRssNews();
     
-    // Save to cache
     file_put_contents($cacheFile, json_encode(['items' => $items, 'cached_at' => time()], JSON_PRETTY_PRINT));
+    syncToGithub();
     
     echo json_encode(['success' => true, 'items' => count($items)]);
 }
@@ -497,12 +534,13 @@ function changePassword() {
     if (strlen($pw) < 6) { echo json_encode(['success' => false, 'error' => 'Passwort zu kurz (min. 6 Zeichen)']); return; }
     $config = getConfig();
     $config['admin_hash'] = password_hash($pw, PASSWORD_DEFAULT);
-    unset($config['note']); // remove placeholder note
+    unset($config['note']);
     file_put_contents(DATA_DIR . 'config.json', json_encode($config, JSON_PRETTY_PRINT));
+    syncToGithub();
     echo json_encode(['success' => true]);
 }
 
-// f4cd AI PROXY f4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cdf4cd
+// AI PROXY
 function handleAiQuery() {
     $data = json_decode(file_get_contents('php://input'), true);
     $apiKey = $data['apiKey'] ?? '';
@@ -514,7 +552,6 @@ function handleAiQuery() {
         return;
     }
 
-    // Sanitize
     $message = substr(strip_tags($message), 0, 2000);
 
     $payload = [
