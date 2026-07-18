@@ -53,7 +53,7 @@ if (!isset($_SESSION[ADMIN_SESSION]) || !$_SESSION[ADMIN_SESSION]) {
   <main id="main" style="margin-left:0; padding:80px 24px 40px">
     <div class="page-header">
       <h1>⚙️ Admin-Bereich</h1>
-      <p>Inhalte verwalten – Tools, Prompts, News, Kurse, Glossar und RSS-Feeds</p>
+      <p>Inhalte verwalten – Tools, Prompts, Kurse, Glossar und <strong>RSS-Feeds</strong> (Aktuelles)</p>
     </div>
 
     <!-- Tabs -->
@@ -97,8 +97,8 @@ if (!isset($_SESSION[ADMIN_SESSION]) || !$_SESSION[ADMIN_SESSION]) {
     <!-- ── NEWS ──────────────────────────────────────────── -->
     <div id="tab-news" class="admin-section">
       <div class="admin-header-bar">
-        <h2 style="font-size:1rem;font-weight:600">News-Beiträge verwalten</h2>
-        <button class="btn btn-primary" onclick="openModal('news')">+ Neue Meldung</button>
+        <h2 style="font-size:1rem;font-weight:600">RSS-Nachrichten (Aktuelles)</h2>
+        <button class="btn btn-outline" onclick="refreshRssCache()">🔄 RSS-Cache aktualisieren</button>
       </div>
       <div class="table-wrap">
         <table class="admin-table">
@@ -398,7 +398,7 @@ function showTab(name) {
 const loaders = {
   tools: loadTools,
   prompts: loadPrompts,
-  news: loadNews,
+  news: loadRssNews,
   courses: loadCourses,
   glossary: loadGlossary,
 };
@@ -740,6 +740,17 @@ async function refreshRssCache() {
     toast(`Cache aktualisiert - ${d.items || 0} Nachrichten geladen`, 'success');
   } else {
     toast('Fehler beim Aktualisieren', 'error');
+  }
+}
+
+
+function formatAdminDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('de-DE', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch (e) {
+    return dateStr.substring(0, 10);
   }
 }
 
