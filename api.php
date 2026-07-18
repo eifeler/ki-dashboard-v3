@@ -115,7 +115,19 @@ function getTools() {
 }
 
 function getPrompts() {
-    return readDataDir(DATA_DIR . 'prompts/');
+    $prompts = readDataDir(DATA_DIR . 'prompts/');
+    foreach ($prompts as &$p) {
+        // Prompt-Body wird unter 'text' geschrieben (siehe savePrompt()),
+        // parseMdFile() liefert den Body aber generisch als 'content'.
+        // Hier zurück auf 'text' mappen, damit Admin-Formular und
+        // Frontend (assets/js/app.js: p.text) den Prompt-Text finden.
+        if (isset($p['content']) && !isset($p['text'])) {
+            $p['text'] = $p['content'];
+            unset($p['content']);
+        }
+    }
+    unset($p);
+    return $prompts;
 }
 
 function getNews() {
