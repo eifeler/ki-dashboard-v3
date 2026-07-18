@@ -31,6 +31,8 @@ if (!isset($_SESSION[ADMIN_SESSION]) || !$_SESSION[ADMIN_SESSION]) {
     }
     .table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); }
     .edit-area { min-height:120px; }
+    .rss-feed-item { display:flex; align-items:center; gap:12px; padding:12px; border-bottom:1px solid var(--border); }
+    .rss-feed-item:last-child { border-bottom:none; }
   </style>
 </head>
 <body>
@@ -51,7 +53,7 @@ if (!isset($_SESSION[ADMIN_SESSION]) || !$_SESSION[ADMIN_SESSION]) {
   <main id="main" style="margin-left:0; padding:80px 24px 40px">
     <div class="page-header">
       <h1>⚙️ Admin-Bereich</h1>
-      <p>Inhalte verwalten – Tools, Prompts, News, Kurse und Glossar</p>
+      <p>Inhalte verwalten – Tools, Prompts, News, Kurse, Glossar und RSS-Feeds</p>
     </div>
 
     <!-- Tabs -->
@@ -133,7 +135,28 @@ if (!isset($_SESSION[ADMIN_SESSION]) || !$_SESSION[ADMIN_SESSION]) {
     </div>
 
     <!-- ── SETTINGS ───────────────────────────────────────── -->
-    <div id="tab-settings" class="admin-section">
+        <!-- RSS FEEDS -->
+    <div id="tab-rss" class="admin-section">
+      <div class="admin-header-bar">
+        <h2 style="font-size:1rem;font-weight:600">RSS-Feeds verwalten</h2>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" onclick="addRssFeed()">+ Feed hinzufügen</button>
+          <button class="btn btn-outline" onclick="refreshRssCache()">🔄 Cache aktualisieren</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot"></span> Aktive RSS-Feeds</div>
+        <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:16px">
+          Diese Feeds werden automatisch abgerufen und im Bereich "Aktuelles" angezeigt.
+        </p>
+        <div id="rss-feeds-list" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+          <button class="btn btn-primary" onclick="saveRssFeeds()">💾 Speichern</button>
+        </div>
+      </div>
+    </div>
+
+<div id="tab-settings" class="admin-section">
       <div class="card" style="max-width:480px">
         <div class="card-title"><span class="dot"></span> Admin-Passwort ändern</div>
         <div class="form-group">
@@ -637,6 +660,89 @@ function esc(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
+
+// RSS FEEDS
+let rssFeeds = [];
+
+async function loadRssFeeds() {
+  const r = await fetch('../api.php?action=rss_feeds');
+  const d = await r.json();
+  rssFeeds = d.feeds || [];
+  renderRssFeeds();
+}
+
+function renderRssFeeds() {
+  const el = document.getElementById('rss-feeds-list');
+  if (!el) return;
+  el.innerHTML = rssFeeds.map((feed, idx) => `
+    <div class="rss-feed-item">
+      <div style="flex:1">
+        <div style="font-weight:600">${esc(feed.title || 'Unbenannter Feed')}</div>
+        <div style="font-size:.8rem;color:var(--text-muted);word-break:break-all">${esc(feed.url)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" ${feed.enabled ? 'checked' : ''} 
+                 onchange="rssFeeds[${idx}].enabled = this.checked; renderRssFeeds()">
+          <span style="font-size:.8rem">Aktiv</span>
+        </label>
+        <button class="btn-icon" onclick="editRssFeed(${idx})" title="Bearbeiten">✏️</button>
+        <button class="btn-icon" onclick="removeRssFeed(${idx})" title="Entfernen">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+function addRssFeed() {
+  rssFeeds.push({ url: '', title: 'Neuer Feed', enabled: true });
+  renderRssFeeds();
+}
+
+function editRssFeed(idx) {
+  const feed = rssFeeds[idx];
+  const url = prompt('Feed-URL:', feed.url);
+  if (url !== null) {
+    const title = prompt('Feed-Titel:', feed.title);
+    if (title !== null) {
+      rssFeeds[idx] = { url, title, enabled: feed.enabled };
+      renderRssFeeds();
+    }
+  }
+}
+
+function removeRssFeed(idx) {
+  if (confirm('Feed wirklich entfernen?')) {
+    rssFeeds.splice(idx, 1);
+    renderRssFeeds();
+  }
+}
+
+async function saveRssFeeds() {
+  const r = await fetch('../api.php?action=admin_save_rss_feeds', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ feeds: rssFeeds })
+  });
+  const d = await r.json();
+  if (d.success) {
+    toast('RSS-Feeds gespeichert ✅', 'success');
+  } else {
+    toast('Fehler beim Speichern', 'error');
+  }
+}
+
+async function refreshRssCache() {
+  const r = await fetch('../api.php?action=admin_refresh_rss', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const d = await r.json();
+  if (d.success) {
+    toast(`Cache aktualisiert - ${d.items || 0} Nachrichten geladen`, 'success');
+  } else {
+    toast('Fehler beim Aktualisieren', 'error');
+  }
+}
+
 </script>
 </body>
 </html>

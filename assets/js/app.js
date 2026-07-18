@@ -280,8 +280,8 @@ const App = {
         <div>
           <div class="news-title">${esc(n.title)}</div>
           <div class="news-meta">
-            <span class="news-category">${esc(n.category)}</span>
-            <span>${esc(n.date)}</span>
+            <span class="news-category">${esc(n.source || n.category || 'RSS')}</span>
+            <span>${formatDate(n.date)}</span>
           </div>
         </div>
       </div>`).join('');
@@ -467,9 +467,9 @@ const App = {
 
   loadNews() {
     if (this._newsData) { this.renderNewsFull(this._newsData); return; }
-    fetch('api.php?action=news')
+    fetch('api.php?action=rss_news')
       .then(r => r.json())
-      .then(data => { this._newsData = data.news||[]; this.renderNewsFull(this._newsData); })
+      .then(data => { this._newsData = data.items||[]; this.renderNewsFull(this._newsData); })
       .catch(() => {});
   },
 
@@ -592,6 +592,16 @@ const App = {
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('de-DE', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch (e) {
+    return dateStr;
+  }
+}
+
 function esc(str) {
   if (str === null || str === undefined) return '';
   return String(str)

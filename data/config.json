@@ -2,5 +2,10 @@
   "admin_hash": "$2y$10$placeholder_change_on_first_run",
   "site_title": "KI-Dashboard",
   "api_proxy": false,
+  "rss_feeds": [
+    {"url": "https://www.drweb.de/technologie-innovation/ki/feed/", "title": "DrWeb KI", "enabled": true},
+    {"url": "https://www.heise.de/thema/Kuenstliche-Intelligenz.xml", "title": "Heise KI", "enabled": true},
+    {"url": "https://the-decoder.de/feed/", "title": "The Decoder", "enabled": true}
+  ],
   "note": "Hash wird beim ersten Login automatisch gesetzt. Standardpasswort: admin123"
 }
