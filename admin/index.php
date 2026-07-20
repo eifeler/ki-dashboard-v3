@@ -53,16 +53,16 @@ if (!isset($_SESSION[ADMIN_SESSION]) || !$_SESSION[ADMIN_SESSION]) {
   <main id="main" style="margin-left:0; padding:80px 24px 40px">
     <div class="page-header">
       <h1>⚙️ Admin-Bereich</h1>
-      <p>Inhalte verwalten – Tools, Prompts, News, Kurse, Glossar und RSS-Feeds</p>
+      <p>Inhalte verwalten – Tools, Prompts, Kurse, Glossar und RSS-Feeds</p>
     </div>
 
     <!-- Tabs -->
     <div class="admin-tabs">
       <button class="admin-tab active" onclick="showTab('tools')">🔧 Tools</button>
       <button class="admin-tab" onclick="showTab('prompts')">💬 Prompts</button>
-      <button class="admin-tab" onclick="showTab('news')">📰 News</button>
       <button class="admin-tab" onclick="showTab('courses')">🎓 Kurse</button>
       <button class="admin-tab" onclick="showTab('glossary')">📖 Glossar</button>
+      <button class="admin-tab" onclick="showTab('rss')">📡 RSS-Feeds</button>
       <button class="admin-tab" onclick="showTab('settings')">⚙️ Einstellungen</button>
     </div>
 
@@ -90,20 +90,6 @@ if (!isset($_SESSION[ADMIN_SESSION]) || !$_SESSION[ADMIN_SESSION]) {
         <table class="admin-table">
           <thead><tr><th>Titel</th><th>Kategorie</th><th>Beschreibung</th><th>Aktionen</th></tr></thead>
           <tbody id="prompts-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ── NEWS ──────────────────────────────────────────── -->
-    <div id="tab-news" class="admin-section">
-      <div class="admin-header-bar">
-        <h2 style="font-size:1rem;font-weight:600">News-Beiträge verwalten</h2>
-        <button class="btn btn-primary" onclick="openModal('news')">+ Neue Meldung</button>
-      </div>
-      <div class="table-wrap">
-        <table class="admin-table">
-          <thead><tr><th>Datum</th><th>Titel</th><th>Kategorie</th><th>Aktionen</th></tr></thead>
-          <tbody id="news-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -283,61 +269,6 @@ if (!isset($_SESSION[ADMIN_SESSION]) || !$_SESSION[ADMIN_SESSION]) {
   </div>
 </div>
 
-<!-- News Modal -->
-<div class="modal-overlay" id="modal-news">
-  <div class="modal" style="max-width:560px">
-    <div class="modal-header">
-      <span class="modal-title">News-Beitrag</span>
-      <button class="modal-close" onclick="closeModal('news')">✕</button>
-    </div>
-    <input type="hidden" id="news-file">
-    <div class="grid-2">
-      <div class="form-group">
-        <label class="form-label">ID (slug)</label>
-        <input type="text" class="form-input" id="news-id" placeholder="wird-automatisch-generiert">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Datum</label>
-        <input type="date" class="form-input" id="news-date">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Titel *</label>
-      <input type="text" class="form-input" id="news-title" placeholder="GPT-5 veröffentlicht">
-    </div>
-    <div class="grid-2">
-      <div class="form-group">
-        <label class="form-label">Kategorie</label>
-        <select class="form-select" id="news-category">
-          <option>Modell-Update</option><option>Recht &amp; Politik</option>
-          <option>Produkt-Launch</option><option>Forschung</option><option>Sonstiges</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Farb-Marker</label>
-        <select class="form-select" id="news-color">
-          <option value="">Blau (Standard)</option>
-          <option value="orange">Orange</option>
-          <option value="green">Grün</option>
-          <option value="purple">Lila</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Volltext / Zusammenfassung</label>
-      <textarea class="form-textarea" id="news-content" rows="5"></textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Externer Link (optional)</label>
-      <input type="url" class="form-input" id="news-url" placeholder="https://…">
-    </div>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn btn-outline" onclick="closeModal('news')">Abbrechen</button>
-      <button class="btn btn-primary" onclick="saveNews()">💾 Speichern</button>
-    </div>
-  </div>
-</div>
-
 <!-- Course Modal -->
 <div class="modal-overlay" id="modal-course">
   <div class="modal">
@@ -398,7 +329,6 @@ function showTab(name) {
 const loaders = {
   tools: loadTools,
   prompts: loadPrompts,
-  news: loadNews,
   courses: loadCourses,
   glossary: loadGlossary,
   rss: loadRssFeeds,
@@ -407,8 +337,6 @@ const loaders = {
 // ── INITIAL LOAD ────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadTools();
-  // Set today's date in news form
-  document.getElementById('news-date').value = new Date().toISOString().split('T')[0];
 });
 
 // ── MODALS ───────────────────────────────────────────────
@@ -429,7 +357,6 @@ function clearForm(type) {
   document.querySelectorAll(`#modal-${type} input, #modal-${type} textarea, #modal-${type} select`).forEach(el => {
     if (el.type !== 'hidden') el.value = '';
   });
-  if (type === 'news') document.getElementById('news-date').value = new Date().toISOString().split('T')[0];
 }
 
 function fillForm(type, data) {
@@ -526,48 +453,6 @@ async function deletePrompt(file) {
   if (!confirm('Prompt löschen?')) return;
   await fetch('../api.php?action=admin_delete_prompt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file})});
   toast('Gelöscht','info'); loadPrompts();
-}
-
-// ── NEWS ─────────────────────────────────────────────────
-async function loadNews() {
-  const r = await fetch('../api.php?action=news');
-  const d = await r.json();
-  const tbody = document.getElementById('news-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = (d.news||[]).map(n => `
-    <tr>
-      <td style="white-space:nowrap">${esc(n.date)}</td>
-      <td><strong>${esc(n.title)}</strong></td>
-      <td><span class="news-category">${esc(n.category)}</span></td>
-      <td>
-        <button class="btn-icon" onclick='openModal("news",${JSON.stringify(n)})'>✏️</button>
-        <button class="btn-icon" style="margin-left:4px" onclick='deleteNews("${esc(n._file)}")'>🗑️</button>
-      </td>
-    </tr>`).join('') || '<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:20px">Keine News.</td></tr>';
-}
-
-async function saveNews() {
-  const data = {
-    id: document.getElementById('news-id').value,
-    title: document.getElementById('news-title').value,
-    date: document.getElementById('news-date').value,
-    category: document.getElementById('news-category').value,
-    color: document.getElementById('news-color').value,
-    url: document.getElementById('news-url').value,
-    content: document.getElementById('news-content').value,
-    _file: document.getElementById('news-file').value,
-  };
-  if (!data.title) { toast('Titel erforderlich','error'); return; }
-  const r = await fetch('../api.php?action=admin_save_news',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  const d = await r.json();
-  if (d.success) { toast('News gespeichert ✓','success'); closeModal('news'); loadNews(); }
-  else toast('Fehler','error');
-}
-
-async function deleteNews(file) {
-  if (!confirm('Beitrag löschen?')) return;
-  await fetch('../api.php?action=admin_delete_news',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file})});
-  toast('Gelöscht','info'); loadNews();
 }
 
 // ── COURSES ──────────────────────────────────────────────
@@ -677,37 +562,26 @@ function renderRssFeeds() {
   if (!el) return;
   el.innerHTML = rssFeeds.map((feed, idx) => `
     <div class="rss-feed-item">
-      <div style="flex:1">
-        <div style="font-weight:600">${esc(feed.title || 'Unbenannter Feed')}</div>
-        <div style="font-size:.8rem;color:var(--text-muted);word-break:break-all">${esc(feed.url)}</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <input type="text" class="form-input" style="font-weight:600" value="${esc(feed.title || '')}"
+               placeholder="Feed-Titel" oninput="rssFeeds[${idx}].title = this.value">
+        <input type="url" class="form-input" style="font-size:.8rem" value="${esc(feed.url || '')}"
+               placeholder="https://beispiel.de/feed/" oninput="rssFeeds[${idx}].url = this.value">
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
           <input type="checkbox" ${feed.enabled ? 'checked' : ''} 
-                 onchange="rssFeeds[${idx}].enabled = this.checked; renderRssFeeds()">
+                 onchange="rssFeeds[${idx}].enabled = this.checked">
           <span style="font-size:.8rem">Aktiv</span>
         </label>
-        <button class="btn-icon" onclick="editRssFeed(${idx})" title="Bearbeiten">✏️</button>
         <button class="btn-icon" onclick="removeRssFeed(${idx})" title="Entfernen">🗑️</button>
       </div>
-    </div>`).join('');
+    </div>`).join('') || '<p style="color:var(--text-muted);font-size:.85rem">Noch keine RSS-Feeds. Klicke auf "+ Feed hinzufügen".</p>';
 }
 
 function addRssFeed() {
-  rssFeeds.push({ url: '', title: 'Neuer Feed', enabled: true });
+  rssFeeds.push({ url: '', title: '', enabled: true });
   renderRssFeeds();
-}
-
-function editRssFeed(idx) {
-  const feed = rssFeeds[idx];
-  const url = prompt('Feed-URL:', feed.url);
-  if (url !== null) {
-    const title = prompt('Feed-Titel:', feed.title);
-    if (title !== null) {
-      rssFeeds[idx] = { url, title, enabled: feed.enabled };
-      renderRssFeeds();
-    }
-  }
 }
 
 function removeRssFeed(idx) {
@@ -718,6 +592,8 @@ function removeRssFeed(idx) {
 }
 
 async function saveRssFeeds() {
+  const invalid = rssFeeds.some(f => !f.url || !f.url.trim());
+  if (invalid) { toast('Bitte bei allen Feeds eine URL angeben (oder leere Zeilen entfernen)', 'error'); return; }
   const r = await fetch('../api.php?action=admin_save_rss_feeds', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

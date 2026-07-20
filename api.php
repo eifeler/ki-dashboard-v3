@@ -21,7 +21,6 @@ switch ($action) {
     case 'tools':     echo json_encode(['tools' => getTools()]); break;
     case 'prompts':   echo json_encode(['prompts' => getPrompts()]); break;
     case 'courses':   echo json_encode(['courses' => getCourses(), 'glossary' => getGlossary()]); break;
-    case 'news':      echo json_encode(['news' => getNews()]); break;
     case 'ticker':    echo json_encode(['items' => getTickerItems()]); break;
     case 'ai_query':  handleAiQuery(); break;
     case 'rss_feeds': echo json_encode(['feeds' => getRssFeeds()]); break;
@@ -35,8 +34,6 @@ switch ($action) {
     case 'admin_delete_tool': requireAdmin(); deleteTool(); break;
     case 'admin_save_prompt':   requireAdmin(); savePrompt(); break;
     case 'admin_delete_prompt': requireAdmin(); deletePrompt(); break;
-    case 'admin_save_news':   requireAdmin(); saveNews(); break;
-    case 'admin_delete_news': requireAdmin(); deleteNews(); break;
     case 'admin_save_course':   requireAdmin(); saveCourse(); break;
     case 'admin_save_glossary': requireAdmin(); saveGlossary(); break;
     case 'admin_change_pw':     requireAdmin(); changePassword(); break;
@@ -130,12 +127,6 @@ function getPrompts() {
     return $prompts;
 }
 
-function getNews() {
-    $items = readDataDir(DATA_DIR . 'news/');
-    usort($items, fn($a,$b) => strcmp($b['date'] ?? '', $a['date'] ?? ''));
-    return $items;
-}
-
 function getCourses() {
     return readDataDir(DATA_DIR . 'courses/');
 }
@@ -147,12 +138,10 @@ function getGlossary() {
 }
 
 function getTickerItems() {
-    $news = getNews();
     $rssItems = getRssNews();
     $tools = getTools();
     $items = [];
-    foreach (array_slice($rssItems, 0, 3) as $n) $items[] = $n['title'] ?? '';
-    foreach (array_slice($news, 0, 3) as $n) $items[] = $n['title'] ?? '';
+    foreach (array_slice($rssItems, 0, 4) as $n) $items[] = $n['title'] ?? '';
     foreach (array_slice($tools, 0, 2) as $t) $items[] = 'Neues Tool: ' . ($t['name'] ?? '');
     return array_filter($items);
 }
@@ -463,28 +452,6 @@ function savePrompt() {
 function deletePrompt() {
     $data = json_decode(file_get_contents('php://input'), true);
     $file = DATA_DIR . 'prompts/' . ($data['file'] ?? '');
-    if (file_exists($file)) { 
-        unlink($file); 
-        syncToGithub();
-        echo json_encode(['success' => true]); 
-    }
-    else echo json_encode(['success' => false]);
-}
-
-function saveNews() {
-    $data = json_decode(file_get_contents('php://input'), true);
-    if (empty($data['date'])) $data['date'] = date('Y-m-d');
-    $id = preg_replace('/[^a-z0-9\-]/', '', strtolower($data['id'] ?? ''));
-    if (!$id) $id = 'news-' . date('Ymd-His');
-    $file = DATA_DIR . 'news/' . $id . '.md';
-    file_put_contents($file, generateMd($data, 'content'));
-    syncToGithub();
-    echo json_encode(['success' => true]);
-}
-
-function deleteNews() {
-    $data = json_decode(file_get_contents('php://input'), true);
-    $file = DATA_DIR . 'news/' . ($data['file'] ?? '');
     if (file_exists($file)) { 
         unlink($file); 
         syncToGithub();
